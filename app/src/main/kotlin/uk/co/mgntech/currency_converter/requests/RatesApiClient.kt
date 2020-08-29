@@ -2,10 +2,9 @@ package uk.co.mgntech.currency_converter.requests
 
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
-import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
-import java.util.*
+import java.util.Currency
 import uk.co.mgntech.currency_converter.models.CurrencyView
 
 class RatesApiClient(private val ratesApi: RatesApi) {
@@ -17,13 +16,12 @@ class RatesApiClient(private val ratesApi: RatesApi) {
     val currencyRates = MutableLiveData<MutableList<CurrencyView>>()
     val errorLoading = MutableLiveData<Boolean>()
 
-    fun getRates(baseCurrency: String): Disposable {
-        val ratesFlowable = ratesApi.getRates(baseCurrency)
+    fun getRates(baseCurrency: CurrencyView): Disposable {
+        val ratesFlowable = ratesApi.getRates(baseCurrency.currency.currencyCode)
 
         return ratesFlowable
             .map { it.rates }
             .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
             .subscribe({
                 updateResults(baseCurrency, it)
                 Log.d(TAG, "ratesApi - $baseCurrency: $it")
@@ -34,7 +32,8 @@ class RatesApiClient(private val ratesApi: RatesApi) {
             })
     }
 
-    private fun updateResults(baseCurrency: String, rateMap: Map<String, Double>) {
+    @Synchronized
+    private fun updateResults(baseCurrency: CurrencyView, rateMap: Map<String, Double>) {
         if (currencyRates.value.isNullOrEmpty()) {
             val mutableList = mutableListOf<CurrencyView>()
             rateMap.keys.forEach {
@@ -42,15 +41,18 @@ class RatesApiClient(private val ratesApi: RatesApi) {
                 mutableList.add(currencyView)
             }
             mutableList.sortWith { first, second -> first.currency.displayName.compareTo(second.currency.displayName) }
-            mutableList.add(0, createCurrencyView(baseCurrency, MutableLiveData(1.0)))
+            mutableList.add(0, baseCurrency)
             currencyRates.postValue(mutableList)
         } else {
             currencyRates.value?.forEach {
                 it.rate.postValue(rateMap[it.currency.currencyCode])
             }
         }
-
-        errorLoading.postValue(false)
+        errorLoading.value?.let {
+            if (it) {
+                errorLoading.postValue(false)
+            }
+        }
     }
 
     private fun createCurrencyView(

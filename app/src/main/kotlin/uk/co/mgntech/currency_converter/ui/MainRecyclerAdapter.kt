@@ -7,6 +7,7 @@ import android.widget.EditText
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.MutableLiveData
 import androidx.recyclerview.widget.RecyclerView
+import java.util.Currency
 import uk.co.mgntech.currency_converter.R
 import uk.co.mgntech.currency_converter.models.CurrencyView
 
@@ -16,12 +17,12 @@ class MainRecyclerAdapter(private val viewLifecycleOwner: LifecycleOwner) :
     var list: MutableList<CurrencyView> = mutableListOf()
         set(value) {
             field = value
-            baseCurrency.postValue(field[0])
             notifyDataSetChanged()
         }
 
     private val baseAmount: MutableLiveData<Double> = MutableLiveData(100.0)
-    val baseCurrency: MutableLiveData<CurrencyView> = MutableLiveData()
+    val baseCurrency: MutableLiveData<CurrencyView> =
+        MutableLiveData(CurrencyView(Currency.getInstance("EUR"), MutableLiveData()))
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CurrencyViewHolder {
         val view =
@@ -45,7 +46,8 @@ class MainRecyclerAdapter(private val viewLifecycleOwner: LifecycleOwner) :
         list.add(0, view.tag as CurrencyView)
         baseCurrency.postValue(view.tag as CurrencyView)
         val rateBox = view.findViewById<EditText>(R.id.valueView)
-        baseAmount.postValue(rateBox.text.toString().toDouble())
+        val value = rateBox.text.toString()
+        baseAmount.postValue(value.toDouble())
         notifyItemMoved(position, 0)
     }
 

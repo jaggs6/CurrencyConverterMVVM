@@ -1,6 +1,7 @@
 package uk.co.mgntech.currency_converter.repositories
 
 import io.reactivex.disposables.Disposable
+import uk.co.mgntech.currency_converter.models.CurrencyView
 import uk.co.mgntech.currency_converter.requests.RatesApiClient
 
 class MainRepository(private val apiClient: RatesApiClient) {
@@ -12,7 +13,7 @@ class MainRepository(private val apiClient: RatesApiClient) {
 
     fun currencyRates() = apiClient.currencyRates
 
-    fun ratesApi(baseCurrency: String): Disposable {
+    fun ratesApi(baseCurrency: CurrencyView): Disposable {
         return apiClient.getRates(baseCurrency)
     }
 }

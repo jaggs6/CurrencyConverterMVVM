@@ -18,6 +18,7 @@ import java.text.DecimalFormat
 import java.util.Locale
 import uk.co.mgntech.currency_converter.R
 import uk.co.mgntech.currency_converter.models.CurrencyView
+import uk.co.mgntech.currency_converter.requests.Constants
 import uk.co.mgntech.currency_converter.utils.country
 import uk.co.mgntech.currency_converter.utils.hideKeyboard
 import uk.co.mgntech.currency_converter.utils.toEditable
@@ -47,7 +48,7 @@ class CurrencyViewHolder(
         subtitleText.text = currencyView.currency.currencyCode
         Glide.with(row)
             .load(
-                "https://flagcdn.com/h120/${
+                "${Constants.IMAGE_BASE_URL}/${
                     currencyView.currency.country().toLowerCase(Locale.ROOT)
                 }.webp"
             )
@@ -59,7 +60,7 @@ class CurrencyViewHolder(
         rateEditText.addTextChangedListener(this)
         rateEditText.setOnEditorActionListener(this)
         if (baseCurrency.value == currencyView) {
-            baseAmount.value?.let { updateAmountBox(it, 1.0) }
+            baseAmount.value?.let { updateAmountBox(1.0, 1.0) }
         }
 
         baseAmount.observe(viewLifecycleOwner, {
@@ -94,7 +95,7 @@ class CurrencyViewHolder(
     override fun afterTextChanged(editable: Editable) {
         if (currencyView == baseCurrency.value) {
             if (editable.toString().isEmpty()) {
-                baseAmount.postValue(0.0)
+                baseAmount.postValue(1.0)
             } else {
                 baseAmount.postValue(editable.toString().toDouble())
             }
@@ -116,6 +117,4 @@ class CurrencyViewHolder(
     override fun beforeTextChanged(_1: CharSequence?, _2: Int, _3: Int, _4: Int) {}
 
     override fun onTextChanged(_1: CharSequence?, _2: Int, _3: Int, _4: Int) {}
-
-
 }

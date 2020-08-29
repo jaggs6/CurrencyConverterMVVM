@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.main_fragment.error
 import kotlinx.android.synthetic.main.main_fragment.rv_main
 import uk.co.mgntech.currency_converter.R
+import uk.co.mgntech.currency_converter.models.CurrencyView
 
 class MainFragment : Fragment() {
 
@@ -51,31 +52,45 @@ class MainFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         initRecyclerView()
-
+        recyclerAdapter.baseCurrency.observe(viewLifecycleOwner, {
+            observeRates(it)
+        })
         viewModel.apply {
-            rates().observe(this@MainFragment, {
+            rates().observe(viewLifecycleOwner, {
                 recyclerAdapter.list = it
             })
-            errorLoading().observe(this@MainFragment, {
+            errorLoading().observe(viewLifecycleOwner, {
                 error.isVisible = it
                 rv_main.isVisible = !it
             })
         }
     }
 
-    private fun observeRates() {
-        val baseCurrency = recyclerAdapter.baseCurrency.value?.currency?.currencyCode ?: DEFAULT_CURRENCY
-        viewModel.observeRates(baseCurrency)
+    private fun startObserving() {
+        recyclerAdapter.baseCurrency.value?.let { observeRates(it) }
+    }
+
+    private fun observeRates(baseCurrencyView: CurrencyView) {
+        viewModel.observeRates(baseCurrencyView)
     }
 
     override fun onResume() {
         super.onResume()
-        observeRates()
+        startObserving()
     }
 
     override fun onPause() {
         super.onPause()
         viewModel.cancel()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        recyclerAdapter.baseCurrency.removeObservers(viewLifecycleOwner)
+        viewModel.apply {
+            rates().removeObservers(viewLifecycleOwner)
+            errorLoading().removeObservers(viewLifecycleOwner)
+        }
     }
 
     private fun initRecyclerView() {
@@ -92,6 +107,5 @@ class MainFragment : Fragment() {
 
     companion object {
         fun newInstance() = MainFragment()
-        private const val DEFAULT_CURRENCY: String = "EUR"
     }
 }
