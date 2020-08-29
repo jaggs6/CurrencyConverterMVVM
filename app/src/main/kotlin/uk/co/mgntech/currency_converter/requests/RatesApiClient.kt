@@ -5,7 +5,7 @@ import androidx.lifecycle.MutableLiveData
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
-import java.util.Currency
+import java.util.*
 import uk.co.mgntech.currency_converter.models.CurrencyView
 
 class RatesApiClient(private val ratesApi: RatesApi) {
@@ -34,11 +34,6 @@ class RatesApiClient(private val ratesApi: RatesApi) {
             })
     }
 
-    fun forceRefreshRates(baseCurrency: String): Disposable {
-        currencyRates.postValue(null)
-        return getRates(baseCurrency)
-    }
-
     private fun updateResults(baseCurrency: String, rateMap: Map<String, Double>) {
         if (currencyRates.value.isNullOrEmpty()) {
             val mutableList = mutableListOf<CurrencyView>()
@@ -46,6 +41,7 @@ class RatesApiClient(private val ratesApi: RatesApi) {
                 val currencyView = createCurrencyView(it, MutableLiveData(rateMap[it]))
                 mutableList.add(currencyView)
             }
+            mutableList.sortWith { first, second -> first.currency.displayName.compareTo(second.currency.displayName) }
             mutableList.add(0, createCurrencyView(baseCurrency, MutableLiveData(1.0)))
             currencyRates.postValue(mutableList)
         } else {

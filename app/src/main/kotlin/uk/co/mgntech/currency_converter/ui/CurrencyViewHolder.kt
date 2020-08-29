@@ -2,7 +2,9 @@ package uk.co.mgntech.currency_converter.ui
 
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.KeyEvent
 import android.view.View
+import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
@@ -17,6 +19,7 @@ import java.util.Locale
 import uk.co.mgntech.currency_converter.R
 import uk.co.mgntech.currency_converter.models.CurrencyView
 import uk.co.mgntech.currency_converter.utils.country
+import uk.co.mgntech.currency_converter.utils.hideKeyboard
 import uk.co.mgntech.currency_converter.utils.toEditable
 
 class CurrencyViewHolder(
@@ -24,7 +27,7 @@ class CurrencyViewHolder(
     private val viewLifecycleOwner: LifecycleOwner,
     private val baseCurrency: MutableLiveData<CurrencyView>,
     private val baseAmount: MutableLiveData<Double>
-) : RecyclerView.ViewHolder(row), TextWatcher {
+) : RecyclerView.ViewHolder(row), TextWatcher, TextView.OnEditorActionListener {
 
     companion object {
         private val CURRENCY_VALUE_FORMATTER: DecimalFormat = DecimalFormat("#.##")
@@ -54,6 +57,7 @@ class CurrencyViewHolder(
             .into(logoImage)
 
         rateEditText.addTextChangedListener(this)
+        rateEditText.setOnEditorActionListener(this)
         if (baseCurrency.value == currencyView) {
             baseAmount.value?.let { updateAmountBox(it, 1.0) }
         }
@@ -87,17 +91,31 @@ class CurrencyViewHolder(
         rateEditText.text = CURRENCY_VALUE_FORMATTER.format(amount * rate).toEditable()
     }
 
-    override fun afterTextChanged(p0: Editable) {
+    override fun afterTextChanged(editable: Editable) {
         if (currencyView == baseCurrency.value) {
-            if (p0.toString().isEmpty()) {
+            if (editable.toString().isEmpty()) {
                 baseAmount.postValue(0.0)
             } else {
-                baseAmount.postValue(p0.toString().toDouble())
+                baseAmount.postValue(editable.toString().toDouble())
             }
         }
     }
 
-    override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
+    override fun onEditorAction(view: TextView, actionId: Int, keyEvent: KeyEvent?): Boolean {
+        if (actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE ||
+            keyEvent == null ||
+            keyEvent.keyCode == KeyEvent.KEYCODE_ENTER
+        ) {
+            rateEditText.clearFocus()
+            view.hideKeyboard()
+            return true
+        }
+        return false
+    }
 
-    override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
+    override fun beforeTextChanged(_1: CharSequence?, _2: Int, _3: Int, _4: Int) {}
+
+    override fun onTextChanged(_1: CharSequence?, _2: Int, _3: Int, _4: Int) {}
+
+
 }

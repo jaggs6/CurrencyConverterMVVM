@@ -1,8 +1,7 @@
 package uk.co.mgntech.currency_converter.ui
 
+import android.content.Context
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -12,23 +11,14 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import io.reactivex.disposables.Disposable
 import kotlinx.android.synthetic.main.main_fragment.error
 import kotlinx.android.synthetic.main.main_fragment.rv_main
 import uk.co.mgntech.currency_converter.R
-import uk.co.mgntech.currency_converter.requests.RatesApiClient
 
 class MainFragment : Fragment() {
 
     private lateinit var viewModel: MainViewModel
     private lateinit var recyclerAdapter: MainRecyclerAdapter
-    private lateinit var disposable: Disposable
-
-    private val handler = Handler(Looper.getMainLooper())
-    private val refreshRunnable = Runnable {
-        disposable.dispose()
-        refreshRates()
-    }
 
     private val itemTouchHelperCallback: ItemTouchHelper.SimpleCallback =
         object : ItemTouchHelper.SimpleCallback(
@@ -49,10 +39,6 @@ class MainFragment : Fragment() {
             }
         }
 
-    companion object {
-        fun newInstance() = MainFragment()
-    }
-
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -64,40 +50,32 @@ class MainFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        error.isVisible = false
-
         initRecyclerView()
 
-        RatesApiClient.instance.apply {
-            currencyRates.observe(this@MainFragment, {
+        viewModel.apply {
+            rates().observe(this@MainFragment, {
                 recyclerAdapter.list = it
             })
-            errorLoading.observe(this@MainFragment, {
+            errorLoading().observe(this@MainFragment, {
                 error.isVisible = it
                 rv_main.isVisible = !it
             })
         }
-        refreshRates()
     }
 
-    private fun refreshRates(forceRefresh: Boolean = false) {
-        val baseCurrency = recyclerAdapter.baseCurrency.value?.currency?.currencyCode ?: "EUR"
-        RatesApiClient.instance.apply {
-            disposable =
-                if (forceRefresh) forceRefreshRates(baseCurrency) else getRates(baseCurrency)
-        }
-        handler.postDelayed(refreshRunnable, 1000)
+    private fun observeRates() {
+        val baseCurrency = recyclerAdapter.baseCurrency.value?.currency?.currencyCode ?: DEFAULT_CURRENCY
+        viewModel.observeRates(baseCurrency)
     }
 
     override fun onResume() {
         super.onResume()
-        refreshRates()
+        observeRates()
     }
 
     override fun onPause() {
         super.onPause()
-        handler.removeCallbacks(refreshRunnable)
-        disposable.dispose()
+        viewModel.cancel()
     }
 
     private fun initRecyclerView() {
@@ -107,8 +85,13 @@ class MainFragment : Fragment() {
         ItemTouchHelper(itemTouchHelperCallback).attachToRecyclerView(rv_main)
     }
 
-    override fun onAttachFragment(childFragment: Fragment) {
-        super.onAttachFragment(childFragment)
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
         viewModel = ViewModelProvider(this).get(MainViewModel::class.java)
+    }
+
+    companion object {
+        fun newInstance() = MainFragment()
+        private const val DEFAULT_CURRENCY: String = "EUR"
     }
 }
